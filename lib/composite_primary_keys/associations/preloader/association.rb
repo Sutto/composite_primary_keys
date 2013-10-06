@@ -14,9 +14,9 @@ module ActiveRecord
           owners_map = owners_by_key
           #owner_keys = owners_map.keys.compact
           owner_keys = owners.map do |owner|
-            Array(owner_key_name).map do |owner_key|
-              owner[owner_key]
-            end
+            key = Array(owner_key_name).map { |owner_key| owner[owner_key] }
+            next if key.all?(&:nil?)
+            key
           end.compact.uniq
 
           if klass.nil? || owner_keys.empty?
@@ -24,7 +24,7 @@ module ActiveRecord
           else
             # Some databases impose a limit on the number of ids in a list (in Oracle it's 1000)
             # Make several smaller queries if necessary or make one query if the adapter supports it
-            sliced  = owner_keys.each_slice(model.connection.in_clause_length || owner_keys.size).reject { |r| r.all?(&:nil?) }
+            sliced  = owner_keys.each_slice(model.connection.in_clause_length || owner_keys.size)
             records = sliced.map { |slice| records_for(slice) }.flatten
           end
 
